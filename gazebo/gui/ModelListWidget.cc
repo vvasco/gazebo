@@ -654,6 +654,8 @@ QTreeWidgetItem *ModelListWidget::ListItem(const std::string &_name,
 void ModelListWidget::OnCustomContextMenu(const QPoint &_pt)
 {
   QTreeWidgetItem *item = this->dataPtr->modelTreeWidget->itemAt(_pt);
+  if (!item)
+    return;
 
   // Check to see if the selected item is a model
   int i = this->dataPtr->modelsItem->indexOfChild(item);
@@ -2855,7 +2857,10 @@ void ModelListWidget::InitTransport(const std::string &_name)
   }
 
   this->dataPtr->node = transport::NodePtr(new transport::Node());
-  this->dataPtr->node->Init(_name);
+  if (_name.empty())
+    this->dataPtr->node->TryInit(common::Time::Maximum());
+  else
+    this->dataPtr->node->Init(_name);
 
   this->dataPtr->modelPub = this->dataPtr->node->Advertise<msgs::Model>(
       "~/model/modify");

@@ -64,16 +64,23 @@ DiagnosticManager::DiagnosticManager()
 #endif
 
   this->dataPtr->logPath = this->dataPtr->logPath / "diagnostics" / timeStr;
-
-  // Make sure the path exists.
-  if (!boost::filesystem::exists(this->dataPtr->logPath))
-    boost::filesystem::create_directories(this->dataPtr->logPath);
 }
 
 //////////////////////////////////////////////////
 DiagnosticManager::~DiagnosticManager()
 {
+  this->Fini();
+}
+
+//////////////////////////////////////////////////
+void DiagnosticManager::Fini()
+{
   this->dataPtr->updateConnection.reset();
+
+  this->dataPtr->pub.reset();
+  if (this->dataPtr->node)
+    this->dataPtr->node->Fini();
+  this->dataPtr->node.reset();
 }
 
 //////////////////////////////////////////////////
@@ -250,9 +257,16 @@ DiagnosticTimer::DiagnosticTimer(const std::string &_name)
 : Timer(),
   dataPtr(new DiagnosticTimerPrivate)
 {
-  boost::filesystem::path logPath;
+  boost::filesystem::path logPath = DiagnosticManager::Instance()->LogPath();
 
-  logPath = DiagnosticManager::Instance()->LogPath() / (_name + ".log");
+  // Make sure the path exists.
+  if (!boost::filesystem::exists(logPath))
+  {
+    gzmsg << "Creating diagnostics folder " << logPath << std::endl;
+    boost::filesystem::create_directories(logPath);
+  }
+
+  logPath /= (_name + ".log");
   this->dataPtr->log.open(logPath.string().c_str(),
       std::ios::out | std::ios::app);
 

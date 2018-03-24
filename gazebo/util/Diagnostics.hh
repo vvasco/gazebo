@@ -84,6 +84,9 @@ namespace gazebo
       /// \param[in] _worldName Name of the world.
       public: void Init(const std::string &_worldName);
 
+      /// \brief Finish reporting diagnostics for a world.
+      public: void Fini();
+
       /// \brief Start a new timer instance
       /// \param[in] _name Name of the timer.
       /// \return A pointer to the new diagnostic timer
@@ -153,7 +156,7 @@ namespace gazebo
     {
       /// \brief Constructor
       /// \param[in] _name Name of the timer
-      public: DiagnosticTimer(const std::string &_name);
+      public: explicit DiagnosticTimer(const std::string &_name);
 
       /// \brief Destructor
       public: virtual ~DiagnosticTimer();
