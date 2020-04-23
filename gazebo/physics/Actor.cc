@@ -319,8 +319,16 @@ void Actor::LoadScript(sdf::ElementPtr _sdf)
         ++iter;
       }
 
-      unsigned int idx = iter - this->trajInfo.begin();
-      this->trajInfo.insert(iter, tinfo);
+      unsigned int idx = tinfo.id;
+      if (trajInfo.size() <= tinfo.id)
+      {
+        idx = iter - this->trajInfo.begin();
+        this->trajInfo.insert(iter, tinfo);
+      }
+      else
+      {
+        this->trajInfo[idx] = tinfo;
+      }
 
       // Waypoints
       if (trajSdf->HasElement("waypoint"))
@@ -1042,9 +1050,15 @@ void Actor::Fini()
 }
 
 //////////////////////////////////////////////////
-void Actor::UpdateParameters(sdf::ElementPtr /*_sdf*/)
+void Actor::UpdateParameters(sdf::ElementPtr _sdf)
 {
 //  Model::UpdateParameters(_sdf);
+
+  // Load script containing trajectory waypoints
+  if (_sdf->HasElement("script"))
+  {
+    this->LoadScript(_sdf->GetElement("script"));
+  }
 }
 
 //////////////////////////////////////////////////
