@@ -18,6 +18,8 @@
 #include <limits>
 #include <algorithm>
 
+#include <boost/optional/optional_io.hpp>
+
 #include "gazebo/common/BVHLoader.hh"
 #include "gazebo/common/Console.hh"
 #include "gazebo/common/KeyFrame.hh"
@@ -48,6 +50,9 @@ class gazebo::physics::ActorPrivate
   /// \brief Rotations to align BVH skeleton to DAE skin
   public: std::map<std::string, ignition::math::Matrix4d>
       rotationAligner;
+
+  /// \brief Time when the animation starts within the script.
+  public: common::Time animationStartTime;
 
   /// \brief Last animated frame
   public: std::map<std::string, ignition::math::Matrix4d> lastFrame;
@@ -659,6 +664,56 @@ void Actor::Play()
 }
 
 //////////////////////////////////////////////////
+void Actor::PlayWithAnimationName(const std::string &_animationName,
+                                  const bool &_completeScript,
+                                  const boost::optional<unsigned int> _id)
+{
+  if (this->skelAnimation[_animationName])
+  {
+    this->dataPtr->animationStartTime = 0.0;
+    this->scriptLength = 0.0;
+    bool found = false;
+    for (unsigned int i = 0; i < this->trajInfo.size(); ++i)
+    {
+      TrajectoryInfo t = this->trajInfo[i];
+      this->scriptLength += t.duration;
+      bool cond = false;
+      if (_id)
+      {
+        cond = (t.type == _animationName && t.id == *_id);
+      }
+      else
+      {
+        cond = (t.type == _animationName);
+      }
+
+      if (cond)
+      {
+        this->dataPtr->animationStartTime = this->scriptLength - t.duration;
+        found = cond;
+        if (!_completeScript)
+        {
+          break;
+        }
+      }
+    }
+
+    this->scriptLength -= this->dataPtr->animationStartTime.Double();
+    if (_id && !found)
+    {
+      gzerr << "Invalid id" << std::endl;
+      return;
+    }
+    this->Play();
+  }
+  else
+  {
+    gzerr << _animationName << " not found" << std::endl;
+    return;
+  }
+}
+
+//////////////////////////////////////////////////
 void Actor::Stop()
 {
   this->active = false;
@@ -693,7 +748,8 @@ void Actor::Update()
   if (!this->customTrajectoryInfo)
   {
     this->scriptTime = currentTime.Double() - this->startDelay -
-              this->playStartTime.Double();
+              this->playStartTime.Double() +
+              this->dataPtr->animationStartTime.Double();
 
     // waiting for delayed start
     if (this->scriptTime < 0)
@@ -703,7 +759,8 @@ void Actor::Update()
       return;
     }
 
-    if (this->scriptTime >= this->scriptLength)
+    if (this->scriptTime >=
+            (this->dataPtr->animationStartTime.Double() + this->scriptLength))
     {
       if (!this->loop)
       {
@@ -713,7 +770,7 @@ void Actor::Update()
       else
       {
         this->scriptTime = this->scriptTime - this->scriptLength;
-        this->playStartTime = currentTime - this->scriptTime;
+        this->playStartTime = this->world->SimTime();
       }
     }
 
@@ -1019,6 +1076,12 @@ void Actor::SetScriptTime(const double _time)
 double Actor::ScriptTime() const
 {
   return this->scriptTime;
+}
+
+//////////////////////////////////////////////////
+double Actor::ScriptLength() const
+{
+  return this->scriptLength;
 }
 
 //////////////////////////////////////////////////

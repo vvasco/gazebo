@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+<world name="default">
+    <!-- Global light source -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <!-- Ground plane -->
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <!-- Actor -->
+    <actor name="actor">
+      <skin>
+        <filename>stand.dae</filename>
+      </skin>
+      <animation name="stand">
+        <filename>stand.dae</filename>
+      </animation>
+      <animation name="stand_up">
+        <filename>stand_up.dae</filename>
+      </animation>
+      <animation name="sitting">
+        <filename>sitting.dae</filename>
+      </animation>
+      <animation name="walking">
+        <filename>walk.dae</filename>
+        <interpolate_x>true</interpolate_x>
+      </animation>
+      <animation name="sit_down">
+        <filename>sit_down.dae</filename>
+      </animation>
+      <script>
+        <loop>false</loop>
+        <auto_start>true</auto_start>
+        <trajectory id="0" type="stand"/>
+        <trajectory id="1" type="sit_down"/>
+        <trajectory id="2" type="sitting"/>
+        <trajectory id="3" type="stand_up"/>
+        <trajectory id="4" type="walking"/>
+        <trajectory id="5" type="sit_down"/>
+      </script>
+    </actor>
+  </world>
+</sdf>

@@ -24,6 +24,8 @@
 
 #include <ignition/math/Color.hh>
 
+#include <boost/optional.hpp>
+
 #include "gazebo/physics/Model.hh"
 #include "gazebo/common/Time.hh"
 #include "gazebo/common/Animation.hh"
@@ -104,6 +106,16 @@ namespace gazebo
       /// \brief Start playing the script
       public: virtual void Play();
 
+      /// \brief Play the single animation from the script
+      /// \param[in] _animationName string indicating the animation to play.
+      /// \param[in] _completeScript if true, the script is played
+      ///  from the animation.
+      /// \param[in] _id id of animation to play. To be specified if
+      /// the same animation is played several times in the script.
+      public: void PlayWithAnimationName(const std::string &_animationName,
+           const bool &_completeScript = false,
+           const boost::optional<unsigned int> _id = boost::none);
+
       /// \brief Stop playing the script
       public: virtual void Stop();
 
@@ -140,6 +152,15 @@ namespace gazebo
       /// script loop.
       /// \sa SetScriptTime
       public: double ScriptTime() const;
+
+      /// \brief Get the current script length.
+      /// \return _time Time in seconds of the current script loop.
+      /// When playing a single animation, the script length equals
+      /// the animation's length. When playing from a specified animation,
+      /// the script length equals the total length starting from the
+      /// specified animation.
+      /// \sa PlayWithAnimationName
+      public: double ScriptLength() const;
 
       /// \brief Returns a dictionary of all the skeleton animations associated
       /// with the actor.

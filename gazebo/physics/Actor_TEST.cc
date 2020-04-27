@@ -17,6 +17,7 @@
 
 #include "gazebo/test/ServerFixture.hh"
 #include "gazebo/physics/Actor.hh"
+#include "gazebo/common/SkeletonAnimation.hh"
 
 #include "test/util.hh"
 
@@ -100,6 +101,95 @@ TEST_F(ActorTest, TrajectoryFromSDF)
 
   // Difference betwee script time and sim time is lower than update rate
   EXPECT_LT(fabs(actor->ScriptTime() - world->SimTime().Double()), 1.0 / 30);
+}
+
+/////////////////////////////////////////////////
+TEST_F(ActorTest, PlaySingleAnimation)
+{
+  // Load a world with an actor
+  this->Load("worlds/test/actor-animation.world");
+  auto world = physics::get_world("default");
+  ASSERT_TRUE(world != nullptr);
+
+  // Get model
+  auto model = world->ModelByName("actor");
+  ASSERT_TRUE(model != nullptr);
+
+  // Convert to actor
+  auto actor = boost::dynamic_pointer_cast<physics::Actor>(model);
+  ASSERT_TRUE(actor != nullptr);
+
+  // Check animations were loaded
+  auto skelAnims = actor->SkeletonAnimations();
+  EXPECT_FALSE(skelAnims.empty());
+  EXPECT_EQ(skelAnims.size(), 5u);
+  EXPECT_TRUE(skelAnims["stand"] != NULL);
+  EXPECT_TRUE(skelAnims["sit_down"] != NULL);
+  EXPECT_TRUE(skelAnims["sitting"] != NULL);
+  EXPECT_TRUE(skelAnims["stand_up"] != NULL);
+  EXPECT_TRUE(skelAnims["walking"] != NULL);
+
+  double totLength = skelAnims["stand"]->GetLength()+
+          2*skelAnims["sit_down"]->GetLength()+
+          skelAnims["sitting"]->GetLength()+
+          skelAnims["stand_up"]->GetLength()+
+          skelAnims["walking"]->GetLength();
+  for (auto it = skelAnims.begin(); it != skelAnims.end(); ++it)
+  {
+    std::string animation = it->first;
+    // Check script length is equal to current animation
+    // length, when playing single animation
+    actor->PlayWithAnimationName(animation);
+    EXPECT_TRUE(actor->IsActive());
+    double scriptLength = actor->ScriptLength();
+    double animationLength = skelAnims[animation]->GetLength();
+    EXPECT_DOUBLE_EQ(scriptLength, animationLength);
+
+    // Check script length is lower than / equal to total
+    // script length, when playing from animation
+    actor->PlayWithAnimationName(animation, true);
+    EXPECT_TRUE(actor->IsActive());
+    scriptLength = actor->ScriptLength();
+    EXPECT_LE(scriptLength, totLength);
+  }
+
+  // Check script length is equal to current animation
+  // length, when playing single animation specified
+  // by its id
+  actor->PlayWithAnimationName("sit_down", 1);
+  EXPECT_TRUE(actor->IsActive());
+  double scriptLength = actor->ScriptLength();
+  double animationLength = skelAnims["sit_down"]->GetLength();
+  EXPECT_DOUBLE_EQ(scriptLength, animationLength);
+
+  actor->PlayWithAnimationName("sit_down", 5);
+  EXPECT_TRUE(actor->IsActive());
+  scriptLength = actor->ScriptLength();
+  EXPECT_DOUBLE_EQ(scriptLength, animationLength);
+
+  // Check script length is coherent, when playing from
+  // animation specified by its id.
+  // "sit_down" with id 5 is the last animation in the
+  // script, therefore the script length should be equal to
+  // the animation length
+  std::cout << "Play sit_down true 5" <<std::endl;
+  actor->PlayWithAnimationName("sit_down", true, 5);
+  EXPECT_TRUE(actor->IsActive());
+  scriptLength = actor->ScriptLength();
+  EXPECT_DOUBLE_EQ(scriptLength, animationLength);
+
+  // when playing from "sit_down" with id 1, the script
+  // length should be equal to the sum of all animation
+  // lengths coming after
+  std::cout << "Play sit_down true 1" <<std::endl;
+  actor->PlayWithAnimationName("sit_down", true, 1);
+  EXPECT_TRUE(actor->IsActive());
+  animationLength += skelAnims["sitting"]->GetLength()+
+          skelAnims["stand_up"]->GetLength()+
+          skelAnims["walking"]->GetLength()+
+          skelAnims["sit_down"]->GetLength();
+  scriptLength = actor->ScriptLength();
+  EXPECT_DOUBLE_EQ(scriptLength, animationLength);
 }
 
 //////////////////////////////////////////////////
