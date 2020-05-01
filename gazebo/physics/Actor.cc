@@ -54,6 +54,9 @@ class gazebo::physics::ActorPrivate
   /// \brief Time when the animation starts within the script.
   public: common::Time animationStartTime;
 
+  /// \brief Time when the script was stopped.
+  public: common::Time lastStopTime;
+
   /// \brief Last animated frame
   public: std::map<std::string, ignition::math::Matrix4d> lastFrame;
 
@@ -722,6 +725,46 @@ void Actor::PlayWithAnimationName(const std::string &_animationName,
 }
 
 //////////////////////////////////////////////////
+void Actor::PlayFromLastStop(const bool &_completeScript)
+{
+  double rate = 1.0 / 30.0;
+  this->dataPtr->animationStartTime = this->dataPtr->lastStopTime - rate;
+  std::pair<std::string, unsigned int> lastAnim = this->GetCurrentAnimation();
+  int lastAnimId = lastAnim.second;
+  double startTime = this->trajInfo[lastAnimId].startTime;
+  this->scriptLength -= (this->dataPtr->animationStartTime.Double() - startTime);
+  for (unsigned int i = ++lastAnimId; i < this->trajInfo.size(); ++i)
+  {
+    TrajectoryInfo t = this->trajInfo[i];
+    this->scriptLength += t.duration;
+    if (!_completeScript)
+    {
+        break;
+    }
+  }
+  this->Play();
+}
+
+//////////////////////////////////////////////////
+std::pair<std::string, unsigned int> Actor::GetCurrentAnimation() const
+{
+  std::string nameAnim = " ";
+  unsigned idAnim;
+  for (unsigned int i = 0; i < this->trajInfo.size(); ++i)
+  {
+    TrajectoryInfo t = this->trajInfo[i];
+    double rate = 1.0 / 30.0;
+    double time = this->dataPtr->lastStopTime.Double() - rate;
+    if ( time >= t.startTime && time < t.endTime )
+    {
+      nameAnim = t.type;
+      idAnim = t.id;
+    }
+  }
+  return std::make_pair(nameAnim, idAnim);
+}
+
+//////////////////////////////////////////////////
 void Actor::Stop()
 {
   this->active = false;
@@ -758,6 +801,7 @@ void Actor::Update()
     this->scriptTime = currentTime.Double() - this->startDelay -
               this->playStartTime.Double() +
               this->dataPtr->animationStartTime.Double();
+    this->dataPtr->lastStopTime = this->scriptTime;
 
     // waiting for delayed start
     if (this->scriptTime < 0)

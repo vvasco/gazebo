@@ -116,6 +116,15 @@ namespace gazebo
            const bool &_completeScript = false,
            const boost::optional<unsigned int> _id = boost::none);
 
+      /// \brief Play the script from the last stop
+      /// \param[in] _completeScript if true, the script is played
+      ///  from the animation.
+      public: void PlayFromLastStop(const bool &_completeScript);
+
+      /// \brief Get the current animation being played
+      /// \return Pair containing the name of current animation being played and its id.
+      public: std::pair<std::string, unsigned int> GetCurrentAnimation() const;
+
       /// \brief Stop playing the script
       public: virtual void Stop();
 
